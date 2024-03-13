@@ -2,6 +2,7 @@ from __future__ import print_function
 import os
 import sys
 import json
+import time
 
 
 if __name__=='__main__':
@@ -339,7 +340,7 @@ class GithubIssueMaker:
         #self.label_helper.clear_labels(151)
         github_issue_dict = { 'title': rd.get('subject')\
                     , 'body' : description_info\
-                    , 'labels' : self.label_helper.get_label_names_from_issue(rd)
+                    , 'labels' : [ i.strip() for i in self.label_helper.get_label_names_from_issue(rd) + ["Leginon"] ]
                     }
 
         milestone_number = self.milestone_manager.get_create_milestone(rd)
@@ -356,8 +357,15 @@ class GithubIssueMaker:
         #
         # (3) Create the issue on github
         #
-
-        issue_obj = self.get_github_conn().issues.create(github_issue_dict)
+	issue_obj = None
+	sleeptime=60
+	while not issue_obj:
+		try:
+        		issue_obj = self.get_github_conn().issues.create(github_issue_dict)
+		except requests.exceptions.HTTPError:
+			msg("Failed to create issue. Sleeping.")
+			time.sleep(sleeptime)
+			sleeptime=sleeptime*2
         #issue_obj = self.get_github_conn().issues.update(151, github_issue_dict)
 
         msgt('Github issue created: %s' % issue_obj.number)
@@ -387,6 +395,24 @@ class GithubIssueMaker:
             self.close_github_issue(issue_obj.number)
 
         return issue_obj.number
+
+    def make_dummy_issue(self):
+        github_issue_dict = { 'title': 'Placeholder'\
+                    , 'body' : 'Placeholder'\
+                    , 'labels' : [ 'Placeholder' ]
+                    }
+	issue_obj = None
+	while not issue_obj:
+		try:
+        		issue_obj = self.get_github_conn().issues.create(github_issue_dict)
+		except requests.exceptions.HTTPError:
+			msg("Failed to create issue. Sleeping.")
+			time.sleep(60)
+
+        msgt('Github issue created: %s' % issue_obj.number)
+        msg('issue id: %s' % issue_obj.id)
+        msg('issue url: %s' % issue_obj.html_url)
+	return
 
 
     def is_redmine_issue_closed(self, redmine_issue_dict):

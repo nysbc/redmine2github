@@ -171,6 +171,7 @@ class MigrationManager:
             
         # Iterate through json files
         issue_cnt = 0
+        sleep_cnt = 0
         
         mapping_dict = self.get_dict_from_map_file()    # { redmine issue : github issue }
         for json_fname in self.get_redmine_json_fnames():
@@ -197,25 +198,38 @@ class MigrationManager:
             gm_kwargs = { 'include_assignee' : self.include_assignee \
                          , 'include_comments' : self.include_comments \
                         }
-            github_issue_number = gm.make_github_issue(json_fname_fullpath, **gm_kwargs)
+	    if str(redmine_issue_num) in mapping_dict.keys():
+		msgt("%s already converted" % str(redmine_issue_num))
+                github_issue_number = None
+            else:
+		if len(mapping_dict.keys()) == 0:
+			last_issue_converted = 0
+		else:
+			last_issue_converted = int(sorted(mapping_dict.keys())[-1])
+		dummy_issue_idx = last_issue_converted + 1
+		while dummy_issue_idx < int(redmine_issue_num):
+			gm.make_dummy_issue()
+			dummy_issue_idx += 1
+            	github_issue_number = gm.make_github_issue(json_fname_fullpath, **gm_kwargs)
+            	sleep_cnt += 1
         
             if github_issue_number:
                 mapping_dict.update({ redmine_issue_num : github_issue_number})
                 self.save_dict_to_file(mapping_dict)
         
-            if issue_cnt % 50 == 0:
-                msgt('sleep 1 seconds....')
-                time.sleep(1)
+            if sleep_cnt % 3 == 0 and sleep_cnt > 0:
+                msgt('sleep 10 seconds....')
+                time.sleep(60)
 
 if __name__=='__main__':
-    json_input_directory = os.path.join(REDMINE_ISSUES_DIRECTORY, '2014-1224')
+    json_input_directory = os.path.join(REDMINE_ISSUES_DIRECTORY, 'leginon')
 
     kwargs = dict(include_comments=True\
                 , redmine_issue_start_number=1\
                 , redmine_issue_end_number=5000\
-                #, user_mapping_filename=USER_MAP_FILE       # optional
+                , user_mapping_filename=USER_MAP_FILE       # optional
                 , include_assignee=False    # Optional. Assignee must be in the github repo and USER_MAP_FILE above
-                , label_mapping_filename=LABEL_MAP_FILE     # optional
+                #, label_mapping_filename=LABEL_MAP_FILE     # optional
                 #, milestone_mapping_filename=MILESTONE_MAP_FILE # optional
             )
     mm = MigrationManager(json_input_directory\

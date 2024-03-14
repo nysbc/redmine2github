@@ -210,6 +210,8 @@ class MigrationManager:
 		while dummy_issue_idx < int(redmine_issue_num):
 			gm.make_dummy_issue()
 			dummy_issue_idx += 1
+                	mapping_dict.update({ dummy_issue_idx : None})
+                	self.save_dict_to_file(mapping_dict)
             	github_issue_number = gm.make_github_issue(json_fname_fullpath, **gm_kwargs)
             	sleep_cnt += 1
         

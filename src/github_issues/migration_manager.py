@@ -205,19 +205,19 @@ class MigrationManager:
 		if len(mapping_dict.keys()) == 0:
 			last_issue_converted = 0
 		else:
-			last_issue_converted = int(sorted(mapping_dict.keys())[-1])
+			last_issue_converted = max(map(int,mapping_dict.keys()))
 		dummy_issue_idx = last_issue_converted + 1
 		while dummy_issue_idx < int(redmine_issue_num):
 			gm.make_dummy_issue()
 			dummy_issue_idx += 1
-                	mapping_dict.update({ dummy_issue_idx : None})
+                	mapping_dict.update({ str(dummy_issue_idx) : None})
                 	self.save_dict_to_file(mapping_dict)
             	github_issue_number = gm.make_github_issue(json_fname_fullpath, **gm_kwargs)
-            	sleep_cnt += 1
         
-            if github_issue_number:
-                mapping_dict.update({ redmine_issue_num : github_issue_number})
-                self.save_dict_to_file(mapping_dict)
+            	if github_issue_number:
+                    mapping_dict.update({ redmine_issue_num : github_issue_number})
+                    self.save_dict_to_file(mapping_dict)
+            	sleep_cnt += 1
         
             if sleep_cnt % 3 == 0 and sleep_cnt > 0:
                 msgt('sleep 60 seconds....')

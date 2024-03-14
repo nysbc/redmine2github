@@ -218,15 +218,15 @@ class MigrationManager:
                 self.save_dict_to_file(mapping_dict)
         
             if sleep_cnt % 3 == 0 and sleep_cnt > 0:
-                msgt('sleep 10 seconds....')
+                msgt('sleep 60 seconds....')
                 time.sleep(60)
 
 if __name__=='__main__':
-    json_input_directory = os.path.join(REDMINE_ISSUES_DIRECTORY, 'leginon')
+    json_input_directory = os.path.join(REDMINE_ISSUES_DIRECTORY, 'all')
 
     kwargs = dict(include_comments=True\
                 , redmine_issue_start_number=1\
-                , redmine_issue_end_number=5000\
+                , redmine_issue_end_number=17000\
                 , user_mapping_filename=USER_MAP_FILE       # optional
                 , include_assignee=False    # Optional. Assignee must be in the github repo and USER_MAP_FILE above
                 #, label_mapping_filename=LABEL_MAP_FILE     # optional

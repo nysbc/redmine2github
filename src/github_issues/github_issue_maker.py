@@ -21,6 +21,7 @@ from github_issues.label_helper import LabelHelper
 import csv
 
 from settings.base import get_github_auth, REDMINE_SERVER
+from settings.base import GITHUB_LOGIN, GITHUB_PASSWORD_OR_PERSONAL_ACCESS_TOKEN
 
 import pygithub3
 
@@ -321,6 +322,7 @@ class GithubIssueMaker:
         template = self.jinja_env.get_template('description.md')
 
         author_name = rd.get('author', {}).get('name', None)
+        project_name = rd.get('project', {}).get('name', None)
         author_github_username = self.format_name_for_github(author_name)
 
         desc_dict = {'description' : translate_for_github(rd.get('description', 'no description'))\
@@ -340,7 +342,7 @@ class GithubIssueMaker:
         #self.label_helper.clear_labels(151)
         github_issue_dict = { 'title': rd.get('subject')\
                     , 'body' : description_info\
-                    , 'labels' : [ i.strip() for i in self.label_helper.get_label_names_from_issue(rd) + ["Leginon"] ]
+                    , 'labels' : [ i.strip() for i in self.label_helper.get_label_names_from_issue(rd) + ["Project: %s" % project_name] ]
                     }
 
         milestone_number = self.milestone_manager.get_create_milestone(rd)
@@ -363,7 +365,7 @@ class GithubIssueMaker:
 		try:
         		issue_obj = self.get_github_conn().issues.create(github_issue_dict)
 		except requests.exceptions.HTTPError:
-			msg("Failed to create issue. Sleeping.")
+			msg("Failed to create issue. Sleeping %d seconds." % sleeptime)
 			time.sleep(sleeptime)
 			sleeptime=sleeptime*2
         #issue_obj = self.get_github_conn().issues.update(151, github_issue_dict)
@@ -402,19 +404,49 @@ class GithubIssueMaker:
                     , 'labels' : [ 'Placeholder' ]
                     }
 	issue_obj = None
+	sleeptime=60
 	while not issue_obj:
 		try:
         		issue_obj = self.get_github_conn().issues.create(github_issue_dict)
 		except requests.exceptions.HTTPError:
-			msg("Failed to create issue. Sleeping.")
-			time.sleep(60)
+			msg("Failed to create issue. Sleeping %d seconds." % sleeptime)
+			time.sleep(sleeptime)
+			sleeptime=sleeptime*2
 
-        msgt('Github issue created: %s' % issue_obj.number)
+        msgt('Placeholder Github issue created: %s' % issue_obj.number)
         msg('issue id: %s' % issue_obj.id)
         msg('issue url: %s' % issue_obj.html_url)
+
+	issue_del = False
+	sleeptime=60
+	while not issue_del:
+		try:
+        		issue_del = self.delete_github_issue(issue_obj.number)
+		except Exception as e:
+			msg(e)
+			msg("Failed to delete placeholder issue. Sleeping %d seconds." % sleeptime)
+			time.sleep(sleeptime)
+			sleeptime=sleeptime*2
+	print(issue_del)
 	return
 
-
+    def delete_github_issue(self, issue_id): 
+        issue_mapping = requests.get('https://api.github.com/repos/jpellman/leginon-issues/issues/%s' % issue_id, headers={"Accept": "application/vnd.github+json","X-GitHub-Api-Version": "2022-11-28"},auth=(GITHUB_LOGIN, GITHUB_PASSWORD_OR_PERSONAL_ACCESS_TOKEN))
+	issue_mapping = json.loads(issue_mapping.content)
+	
+        query = """
+        mutation {
+          deleteIssue(input: {issueId: "%s", clientMutationId: "redmine2github"}) {
+            clientMutationId
+          }
+        }
+        """ % str(issue_mapping["node_id"])
+        request = requests.post('https://api.github.com/graphql', data=json.dumps({'query': query}), auth=(GITHUB_LOGIN, GITHUB_PASSWORD_OR_PERSONAL_ACCESS_TOKEN))
+        if request.status_code == 200:
+            return request.json()
+        else:
+            raise Exception("Deletion failed. Query returned code of {}. {}".format(request.status_code, query))
+    
     def is_redmine_issue_closed(self, redmine_issue_dict):
         """
         "status": {

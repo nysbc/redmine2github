@@ -21,7 +21,7 @@ from github_issues.label_helper import LabelHelper
 import csv
 
 from settings.base import get_github_auth, REDMINE_SERVER
-from settings.base import GITHUB_LOGIN, GITHUB_PASSWORD_OR_PERSONAL_ACCESS_TOKEN
+from settings.base import GITHUB_LOGIN, GITHUB_PASSWORD_OR_PERSONAL_ACCESS_TOKEN, GITHUB_TARGET_REPOSITORY
 
 import pygithub3
 
@@ -431,7 +431,7 @@ class GithubIssueMaker:
 	return
 
     def delete_github_issue(self, issue_id): 
-        issue_mapping = requests.get('https://api.github.com/repos/jpellman/leginon-issues/issues/%s' % issue_id, headers={"Accept": "application/vnd.github+json","X-GitHub-Api-Version": "2022-11-28"},auth=(GITHUB_LOGIN, GITHUB_PASSWORD_OR_PERSONAL_ACCESS_TOKEN))
+        issue_mapping = requests.get('https://api.github.com/repos/%s/%s/issues/%s' % (GITHUB_LOGIN, GITHUB_TARGET_REPOSITORY, issue_id), headers={"Accept": "application/vnd.github+json","X-GitHub-Api-Version": "2022-11-28"},auth=(GITHUB_LOGIN, GITHUB_PASSWORD_OR_PERSONAL_ACCESS_TOKEN))
 	issue_mapping = json.loads(issue_mapping.content)
 	
         query = """
